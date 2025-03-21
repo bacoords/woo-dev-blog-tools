@@ -3,8 +3,8 @@ import os
 import sys
 
 def fetch_changelog(version):
-    # Construct the changelog URL
-    changelog_url = f"https://raw.githubusercontent.com/woocommerce/woocommerce/refs/heads/release/{version}/plugins/woocommerce/readme.txt"
+    # Use the trunk changelog URL
+    changelog_url = "https://raw.githubusercontent.com/woocommerce/woocommerce/refs/heads/trunk/changelog.txt"
 
     try:
         # Fetch the changelog
@@ -13,17 +13,26 @@ def fetch_changelog(version):
         
         # Get the content and split at the changelog marker
         content = response.text
-        parts = content.split("== Changelog ==")
         
-        if len(parts) < 2:
-            print("Error: Could not find changelog section in the file")
+        # Find the specific version section
+        version_marker = f"= {version} "
+        if version_marker not in content:
+            print(f"Error: Could not find changelog section for version {version}")
             return False
+            
+        # Split at the version marker and get the content up to the next version
+        parts = content.split(version_marker)
+        if len(parts) < 2:
+            print(f"Error: Could not find changelog section for version {version}")
+            return False
+            
+        # Get the content up to the next version marker
+        changelog_content = parts[1].split("= ")[0].strip()
         
         # Create changelogs directory if it doesn't exist
         os.makedirs("changelogs", exist_ok=True)
         
         # Save the changelog to a file
-        changelog_content = parts[1].strip()
         filename = f"changelogs/{version}.txt"
         
         with open(filename, "w") as f:
