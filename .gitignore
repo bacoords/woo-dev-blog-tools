@@ -1,3 +1,4 @@
 release-posts/
 changelogs/
 .env
+.DS_Store
