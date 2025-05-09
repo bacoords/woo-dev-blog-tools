@@ -20,39 +20,7 @@ GITHUB_TOKEN=your_github_token_here
 
 ## Scripts Overview
 
-### 1. `generate-posts-spreadsheet.py`
-
-Generates a CSV spreadsheet of WordPress posts organized by category and month from the WooCommerce developer blog.
-
-**Usage:**
-
-```bash
-python generate-posts-spreadsheet.py
-```
-
-**Output:**
-
-- Creates a new file in the `/exports/` directory called `wordpress_posts_by_category.csv` with posts organized by category and month
-- Includes proper formatting for Excel compatibility
-
-### 2. `fetch-pr-descriptions.py`
-
-Fetches and adds PR descriptions to changelog files by reading PR references from the changelog.
-
-**Usage:**
-
-```bash
-python fetch-pr-descriptions.py <changelog_file>
-```
-
-**Features:**
-
-- Reads PR references from changelog files
-- Fetches PR descriptions from GitHub
-- Updates changelog with PR descriptions
-- Handles rate limiting automatically
-
-### 3. `fetch-changelog.py`
+### 1. `fetch-changelog.py`
 
 Downloads the changelog for a specific WooCommerce version from the WooCommerce GitHub repository.
 
@@ -67,8 +35,33 @@ python fetch-changelog.py <version>
 
 - Creates a new file in the `changelogs/` directory named `<version>.txt`
 - Downloads changelog content from the WooCommerce trunk branch
+- If the changelog section is not found in trunk, falls back to generating a changelog from GitHub PRs associated with the version's milestone
 
-### 4. `audit-release-prs.py`
+**Features:**
+
+- Primary source: WooCommerce trunk branch changelog
+- Fallback mechanism: Generates changelog from GitHub milestone PRs if trunk version not found
+- Handles GitHub API rate limiting automatically
+- Formats PRs into a consistent changelog structure
+
+### 2. `fetch-pr-descriptions.py`
+
+Fetches and adds PR descriptions to changelog files by reading PR references from the changelog. 
+
+**Usage:**
+
+```bash
+python fetch-pr-descriptions.py <changelog_file>
+```
+
+**Features:**
+
+- Reads PR references from changelog files
+- Fetches PR descriptions from GitHub
+- Updates changelog with PR descriptions
+- Handles rate limiting automatically
+
+### 3. `audit-release-prs.py`
 
 Audits release PRs for WooCommerce releases.
 
@@ -78,7 +71,7 @@ Audits release PRs for WooCommerce releases.
 python audit-release-prs.py
 ```
 
-### 5. `fetch-posts.py`
+### 4. `fetch-posts.py`
 
 Fetches posts from the WooCommerce developer blog.
 
@@ -87,6 +80,21 @@ Fetches posts from the WooCommerce developer blog.
 ```bash
 python fetch-posts.py
 ```
+
+### 5. `generate-posts-spreadsheet.py`
+
+Generates a CSV spreadsheet of WordPress posts organized by category and month from the WooCommerce developer blog.
+
+**Usage:**
+
+```bash
+python generate-posts-spreadsheet.py
+```
+
+**Output:**
+
+- Creates a new file in the `/exports/` directory called `wordpress_posts_by_category.csv` with posts organized by category and month
+- Includes proper formatting for Excel compatibility
 
 ## Directory Structure
 

@@ -1,6 +1,14 @@
 import requests
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+REPO_OWNER = "woocommerce"
+REPO_NAME = "woocommerce"
 
 def fetch_changelog(version):
     # Use the trunk changelog URL
@@ -17,8 +25,8 @@ def fetch_changelog(version):
         # Find the specific version section
         version_marker = f"= {version} "
         if version_marker not in content:
-            print(f"Error: Could not find changelog section for version {version}")
-            return False
+            print(f"Changelog section for version {version} not found. Attempting to generate from GitHub API...")
+            return fetch_prs_from_github(version)
             
         # Split at the version marker and get the content up to the next version
         parts = content.split(version_marker)
@@ -29,16 +37,8 @@ def fetch_changelog(version):
         # Get the content up to the next version marker
         changelog_content = parts[1].split("= ")[0].strip()
         
-        # Create changelogs directory if it doesn't exist
-        os.makedirs("changelogs", exist_ok=True)
-        
         # Save the changelog to a file
-        filename = f"changelogs/{version}.txt"
-        
-        with open(filename, "w") as f:
-            f.write(changelog_content)
-        
-        print(f"Successfully saved changelog to {filename}")
+        save_changelog(version, changelog_content)
         return True
 
     except requests.exceptions.RequestException as e:
@@ -48,8 +48,107 @@ def fetch_changelog(version):
         print(f"An error occurred: {e}")
         return False
 
+def fetch_prs_from_github(version):
+    """Fetch PRs from GitHub API for the specified milestone."""
+    # First verify the milestone exists
+    milestone_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/milestones"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    try:
+        # Get all milestones to find the correct one
+        response = requests.get(milestone_url, headers=headers)
+        response.raise_for_status()
+        milestones = response.json()
+        
+        # Find the milestone that matches our version
+        milestone_number = None
+        for milestone in milestones:
+            if milestone['title'] == version:
+                milestone_number = milestone['number']
+                print(f"Found milestone {version} with number {milestone_number}")
+                break
+        
+        if not milestone_number:
+            print(f"Warning: Could not find milestone for version {version}")
+            print("Available milestones:")
+            for m in milestones:
+                print(f"- {m['title']}")
+            return False
+
+        # Now fetch PRs with the correct milestone number
+        url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues"  # Use issues endpoint instead of pulls
+        params = {
+            "state": "closed",
+            "milestone": str(milestone_number),
+            "per_page": 100
+        }
+
+        all_prs = []
+        next_url = url
+        page_count = 0
+
+        while next_url:
+            page_count += 1
+            print(f"Fetching PRs from page {page_count}...")
+            response = requests.get(next_url, headers=headers, params=params)
+            response.raise_for_status()
+            issues = response.json()
+
+            if not issues:
+                print("No more PRs found, stopping pagination.")
+                break
+
+            # Filter to only include PRs (issues with pull_request field)
+            prs = [issue for issue in issues if 'pull_request' in issue]
+            print(f"Found {len(prs)} PRs on this page")
+            all_prs.extend(prs)
+
+            # Get the next page URL from the Link header
+            next_url = response.links.get('next', {}).get('url')
+            if not next_url:
+                print("No more pages available")
+                break
+                
+            # Clear params as they're included in the next_url
+            params = {}
+
+        print(f"Total PRs found: {len(all_prs)}")
+        if not all_prs:
+            print(f"No PRs found for milestone {version}.")
+            return False
+
+        # Format PRs into changelog format
+        changelog_content = format_prs_as_changelog(all_prs)
+        save_changelog(version, changelog_content)
+        return True
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching PRs from GitHub: {e}")
+        return False
+
+def format_prs_as_changelog(prs):
+    """Format PRs into a changelog-like structure."""
+    changelog_lines = []
+    for pr in prs:
+        title = pr["title"]
+        number = pr["number"]
+        url = pr["html_url"]
+        changelog_lines.append(f"* {title} [#{number}]({url})")
+    return "\n".join(changelog_lines)
+
+def save_changelog(version, content):
+    """Save the changelog content to a file."""
+    os.makedirs("changelogs", exist_ok=True)
+    filename = f"changelogs/{version}.txt"
+    with open(filename, "w") as f:
+        f.write(content)
+    print(f"Successfully saved changelog to {filename}")
+
 if __name__ == "__main__":
     # If no version provided as argument, ask for it
-    version = sys.argv[1] if len(sys.argv) > 1 else input("Enter WooCommerce version (e.g. 9.8): ")
+    version = sys.argv[1] if len(sys.argv) > 1 else input("Enter WooCommerce version (e.g. 9.8.0): ")
     success = fetch_changelog(version)
     exit(0 if success else 1)
