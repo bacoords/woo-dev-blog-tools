@@ -64,11 +64,23 @@ python fetch-pr-descriptions.py <changelog_file>
 ### 3. `audit-release-prs.py`
 
 Audits release PRs for WooCommerce releases.
+**Arguments:**
+
+- `--skip-fetch-posts`: Skip fetching release posts from the developer blog
+- `--skip-fetch-changelog`: Skip fetching changelog
+- `--version`: Specify the WooCommerce version to analyze (e.g. 9.8)
+
+**Features:**
+
+- Analyzes changelog content using OpenAI GPT-4
+- Identifies high-impact changes for release notes
+- Provides reasoning for recommended PRs
+- Integrates with other scripts to gather context
 
 **Usage:**
 
 ```bash
-python audit-release-prs.py
+python audit-release-prs.py --version=9.8.0
 ```
 
 ### 4. `fetch-posts.py`

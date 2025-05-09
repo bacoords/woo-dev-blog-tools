@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from dotenv import load_dotenv
 import argparse
+import sys
 
 # Load environment variables from .env file
 load_dotenv()
@@ -26,8 +27,10 @@ You are an AI assistant tasked with reviewing a changelog for a software project
 {changelog_content}
 
 ### Response Format
-- **Recommended PRs**: [list of PRs]
-- **Reasoning**: [explanation for each recommended PR]
+- **Recommended PRs**:
+  - PR #123: [PR title] - [brief description of why this PR is high impact]
+  - PR #456: [PR title] - [brief description of why this PR is high impact]
+- **Reasoning**: [overall explanation of the selection]
 """
 
 def clean_html(text):
@@ -93,7 +96,7 @@ def get_all_release_notes():
 def run_script(script_name, *args):
     """Run a Python script and return True if successful."""
     try:
-        subprocess.run(['python3', script_name, *args], check=True)
+        subprocess.run([sys.executable, script_name, *args], check=True)
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error running {script_name}: {e}")
@@ -127,25 +130,34 @@ def analyze_with_openai(release_notes, changelog):
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Audit WooCommerce release PRs')
-    parser.add_argument('--skip-fetch-posts', action='store_true', 
-                       help='Skip fetching release posts')
+    parser.add_argument('--fetch-posts', action='store_true', 
+                       help='Fetch release posts')
+    parser.add_argument('--fetch-changelog', action='store_true',
+                       help='Fetch changelog')
+    parser.add_argument('--version', type=str,
+                       help='WooCommerce version (e.g. 9.8)')
     args = parser.parse_args()
 
-    # Step 1: Run fetch-posts.py (unless skipped)
-    if not args.skip_fetch_posts:
+    # Step 1: Run fetch-posts.py (if requested)
+    if args.fetch_posts:
         print("Fetching release posts...")
         if not run_script('fetch-posts.py'):
             return
     else:
-        print("Skipping fetch-posts.py as requested")
+        print("Skipping fetch-posts.py")
 
-    # Step 2: Get version input
-    version = input("Enter WooCommerce version (e.g. 9.8): ")
+    # Step 2: Get version input if not provided as argument
+    version = args.version
+    if not version:
+        version = input("Enter WooCommerce version (e.g. 9.8): ")
 
-    # Step 3: Run fetch-changelog.py with the version
-    print(f"Fetching changelog for version {version}...")
-    if not run_script('fetch-changelog.py', version):
-        return
+    # Step 3: Run fetch-changelog.py with the version (if requested)
+    if args.fetch_changelog:
+        print(f"Fetching changelog for version {version}...")
+        if not run_script('fetch-changelog.py', version):
+            return
+    else:
+        print("Skipping fetch-changelog.py")
 
     # Step 4: Get content and analyze with OpenAI
     print("Analyzing content with OpenAI...")
