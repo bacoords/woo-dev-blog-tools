@@ -1,7 +1,11 @@
 import requests
+import re
 import os
 import sys
+import time
+import csv
 from dotenv import load_dotenv
+from html import unescape
 
 # Load environment variables from .env file
 load_dotenv()
@@ -49,7 +53,11 @@ def fetch_changelog(version):
         return False
 
 def fetch_prs_from_github(version):
-    """Fetch PRs from GitHub API for the specified milestone."""
+    """Fetch PRs from GitHub API for the specified milestone. If test_mode, only fetch 10 PRs."""
+    if not GITHUB_TOKEN:
+        print("Error: GITHUB_TOKEN environment variable is not set")
+        return False
+        
     # First verify the milestone exists
     milestone_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/milestones"
     headers = {
@@ -60,6 +68,9 @@ def fetch_prs_from_github(version):
     try:
         # Get all milestones to find the correct one
         response = requests.get(milestone_url, headers=headers)
+        if response.status_code == 403:
+            print("Error: GitHub API rate limit exceeded. Please try again later.")
+            return False
         response.raise_for_status()
         milestones = response.json()
         
@@ -107,7 +118,18 @@ def fetch_prs_from_github(version):
             all_prs.extend(prs)
 
             # Get the next page URL from the Link header
-            next_url = response.links.get('next', {}).get('url')
+            link_header = response.headers.get('Link', '')
+            if link_header:
+                # Parse the Link header to find the 'next' URL
+                for link in link_header.split(','):
+                    if 'rel="next"' in link:
+                        next_url = link.split(';')[0].strip('<>')
+                        break
+                else:
+                    next_url = None
+            else:
+                next_url = None
+                
             if not next_url:
                 print("No more pages available")
                 break
@@ -121,34 +143,118 @@ def fetch_prs_from_github(version):
             return False
 
         # Format PRs into changelog format
-        changelog_content = format_prs_as_changelog(all_prs)
-        save_changelog(version, changelog_content)
+        changelog_rows = format_prs_as_changelog(all_prs)
+        save_changelog(version, changelog_rows)
         return True
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching PRs from GitHub: {e}")
         return False
 
+def extract_changes_section(description: str) -> str:
+    """Extract the 'Changes proposed' section from PR description, stripping HTML tags and stopping at the testing section."""
+    if not description:
+        return ""
+        
+    # First strip any HTML tags
+    description = re.sub(r'<[^>]+>', '', description)
+    # Unescape any HTML entities
+    description = unescape(description)
+    
+    # Find content between "Changes proposed" and "How to test"
+    pattern = r'Changes proposed in this Pull Request:(.*?)(?=How to test the changes in this Pull Request:|\Z)'
+    match = re.search(pattern, description, re.DOTALL)
+    if match:
+        # Get the captured group (content between the markers)
+        content = match.group(1)
+        # Clean up the content:
+        # 1. Remove any leading/trailing whitespace
+        # 2. Remove any empty lines
+        # 3. Remove any lines that are just comments
+        lines = [line.strip() for line in content.split('\n')]
+        lines = [line for line in lines if line and not line.startswith('<!--') and not line.endswith('-->')]
+        return '\n'.join(lines).strip()
+    return ""
+
+def fetch_pr_description(pr_id: str) -> str:
+    """Fetch PR description from GitHub API."""
+    # Get GitHub token from environment variable
+    token = os.getenv('GITHUB_TOKEN')
+    if not token:
+        raise ValueError("GITHUB_TOKEN environment variable is not set")
+    
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    
+    url = f'https://api.github.com/repos/woocommerce/woocommerce/pulls/{pr_id}'
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        return extract_changes_section( response.json()['body'] )
+    elif response.status_code == 403:
+        print(f"Rate limit exceeded. Waiting 60 seconds...")
+        time.sleep(60)
+        return fetch_pr_description(pr_id)
+    else:
+        print(f"Error fetching PR {pr_id}: {response.status_code}")
+        return ""
+
 def format_prs_as_changelog(prs):
-    """Format PRs into a changelog-like structure."""
-    changelog_lines = []
+    """Format PRs into a list of dicts for CSV output."""
+    changelog_rows = []
     for pr in prs:
         title = pr["title"]
-        number = pr["number"]
+        pr_id = pr["number"]
         url = pr["html_url"]
-        changelog_lines.append(f"* {title} [#{number}]({url})")
-    return "\n".join(changelog_lines)
+        labels = [label["name"] for label in pr.get("labels", []) if label["name"].lower() != "plugin: woocommerce"]
+        label_str = ", ".join(labels)
+        description = fetch_pr_description(pr_id)
+        # description = ''
+        changelog_rows.append({
+            "ID": pr_id,
+            "Title": title,
+            "Labels": label_str,
+            "URL": url,
+            "Description": description,
+            "Ranking": ""  # Blank for now
+        })
+    return changelog_rows
 
 def save_changelog(version, content):
-    """Save the changelog content to a file."""
+    """Save the changelog content to a CSV file."""
     os.makedirs("changelogs", exist_ok=True)
-    filename = f"changelogs/{version}.txt"
-    with open(filename, "w") as f:
-        f.write(content)
-    print(f"Successfully saved changelog to {filename}")
+    filename = f"changelogs/{version}.csv"
+    
+    # If content is a string (from changelog.txt), convert it to a single row
+    if isinstance(content, str):
+        rows = [{
+            "ID": "",
+            "Title": f"Changelog for version {version}",
+            "Labels": "",
+            "URL": "",
+            "Description": content,
+            "Ranking": ""
+        }]
+    else:
+        rows = content  # content is already a list of dicts from PRs
+    
+    fieldnames = ["ID", "Title", "Labels", "URL", "Description", "Ranking"]
+    try:
+        with open(filename, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"Successfully saved changelog to {filename}")
+    except Exception as e:
+        print(f"Error saving changelog: {e}")
+        return False
+    return True
 
 if __name__ == "__main__":
     # If no version provided as argument, ask for it
     version = sys.argv[1] if len(sys.argv) > 1 else input("Enter WooCommerce version (e.g. 9.8.0): ")
-    success = fetch_changelog(version)
+    # success = fetch_changelog(version)
+    success = fetch_prs_from_github(version)
     exit(0 if success else 1)

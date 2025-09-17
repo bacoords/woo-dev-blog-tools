@@ -19,35 +19,6 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 if not os.getenv('OPENAI_API_KEY'):
     raise ValueError("Please set the OPENAI_API_KEY in your .env file")
 
-theme_identification_prompt = """
-You are an AI assistant tasked with analyzing a large set of pull requests for a software project release. Your goal is to identify major themes or groups of related changes from the provided changelog. Consider how different PRs might be working towards the same feature, fixing related issues, or contributing to a larger initiative.
-
-### Existing Release Notes (For Context)
-{release_notes_content}
-
-### Changelog
-{changelog_content}
-
-### Response Format
-Please group the PRs into themes and provide a high-level summary in the following format:
-
-THEMES:
-1. [Theme Name]
-   - Overview: [Brief description of what this theme encompasses]
-   - Related PRs: [List of PR numbers]
-   - Impact Level: [HIGH/MEDIUM/LOW]
-
-2. [Theme Name]
-   - Overview: [Brief description of what this theme encompasses]
-   - Related PRs: [List of PR numbers]
-   - Impact Level: [HIGH/MEDIUM/LOW]
-
-[Continue for all identified themes]
-
-REASONING:
-[Explain your thought process for grouping these PRs and assigning impact levels]
-"""
-
 detailed_analysis_prompt = """
 You are an AI assistant performing a detailed analysis of a specific theme of changes for a software release. Below is a group of related PRs that work together towards a common goal or feature. Analyze their collective impact and provide a comprehensive summary.
 

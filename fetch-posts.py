@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 from urllib.parse import urlparse
 import json
+import html2text
 
 def sanitize_filename(title):
     """Convert a title into a valid filename."""
@@ -85,7 +86,9 @@ def fetch_and_save_posts():
         content += f"Date: {post['date']}\n"
         content += f"Link: {post['link']}\n"
         content += "\nContent:\n"
-        content += post['content']['rendered']
+        # Convert HTML to Markdown
+        markdown_content = html2text.html2text(post['content']['rendered'])
+        content += markdown_content
         
         # Save to file
         filepath = os.path.join(output_dir, filename)
