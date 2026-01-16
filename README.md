@@ -1,6 +1,6 @@
 # WooCommerce Developer Blog Tools
 
-This repository contains a collection of Python scripts to help manage and analyze WooCommerce developer blog content, changelogs, and release information.
+This repository contains a collection of Python scripts and Claude skills to help manage and analyze WooCommerce developer blog content, changelogs, and release information.
 
 ## Prerequisites
 
@@ -9,6 +9,7 @@ This repository contains a collection of Python scripts to help manage and analy
   - requests
   - pandas
   - python-dotenv
+- Claude Code CLI (for analysis skills)
 
 ## Environment Setup
 
@@ -18,9 +19,43 @@ This repository contains a collection of Python scripts to help manage and analy
 GITHUB_TOKEN=your_github_token_here
 ```
 
+## Quick Start: Release Analysis
+
+The recommended workflow for analyzing WooCommerce releases:
+
+### 1. Fetch Data (Python)
+
+```bash
+# Fetch changelog for a specific version
+python fetch-changelog.py 9.9.0
+
+# Fetch release posts for context
+python fetch-posts.py
+```
+
+Or use the orchestrator script:
+
+```bash
+python audit-release-prs.py --fetch-changelog --fetch-posts --version 9.9.0
+```
+
+### 2. Analyze (Claude Skills)
+
+For full thematic analysis with impact assessment and release note suggestions:
+```
+/woocommerce-pr-analyzer 9.9.0
+```
+
+For quick relevance scoring:
+```
+/woocommerce-release-comms 9.9.0
+```
+
 ## Scripts Overview
 
-### 1. `fetch-changelog.py`
+### Data Fetching Scripts
+
+#### `fetch-changelog.py`
 
 Downloads the changelog for a specific WooCommerce version from the WooCommerce GitHub repository.
 
@@ -28,25 +63,18 @@ Downloads the changelog for a specific WooCommerce version from the WooCommerce 
 
 ```bash
 python fetch-changelog.py <version>
-# Example: python fetch-changelog.py 9.8
+# Example: python fetch-changelog.py 9.9.0
 ```
 
 **Output:**
 
-- Creates a new file in the `changelogs/` directory named `<version>.txt`
+- Creates files in the `changelogs/` directory (`<version>.csv` and `<version>.txt`)
 - Downloads changelog content from the WooCommerce trunk branch
-- If the changelog section is not found in trunk, falls back to generating a changelog from GitHub PRs associated with the version's milestone
+- Falls back to generating changelog from GitHub PRs if trunk version not found
 
-**Features:**
+#### `fetch-pr-descriptions.py`
 
-- Primary source: WooCommerce trunk branch changelog
-- Fallback mechanism: Generates changelog from GitHub milestone PRs if trunk version not found
-- Handles GitHub API rate limiting automatically
-- Formats PRs into a consistent changelog structure
-
-### 2. `fetch-pr-descriptions.py`
-
-Fetches and adds PR descriptions to changelog files by reading PR references from the changelog. 
+Fetches and adds PR descriptions to changelog files by reading PR references from the changelog.
 
 **Usage:**
 
@@ -54,36 +82,7 @@ Fetches and adds PR descriptions to changelog files by reading PR references fro
 python fetch-pr-descriptions.py <changelog_file>
 ```
 
-**Features:**
-
-- Reads PR references from changelog files
-- Fetches PR descriptions from GitHub
-- Updates changelog with PR descriptions
-- Handles rate limiting automatically
-
-### 3. `audit-release-prs.py`
-
-Audits release PRs for WooCommerce releases.
-**Arguments:**
-
-- `--skip-fetch-posts`: Skip fetching release posts from the developer blog
-- `--skip-fetch-changelog`: Skip fetching changelog
-- `--version`: Specify the WooCommerce version to analyze (e.g. 9.8)
-
-**Features:**
-
-- Analyzes changelog content using OpenAI GPT-4
-- Identifies high-impact changes for release notes
-- Provides reasoning for recommended PRs
-- Integrates with other scripts to gather context
-
-**Usage:**
-
-```bash
-python audit-release-prs.py --version=9.8.0
-```
-
-### 4. `fetch-posts.py`
+#### `fetch-posts.py`
 
 Fetches posts from the WooCommerce developer blog.
 
@@ -93,9 +92,9 @@ Fetches posts from the WooCommerce developer blog.
 python fetch-posts.py
 ```
 
-### 5. `generate-posts-spreadsheet.py`
+#### `generate-posts-spreadsheet.py`
 
-Generates a CSV spreadsheet of WordPress posts organized by category and month from the WooCommerce developer blog.
+Generates a CSV spreadsheet of WordPress posts organized by category and month.
 
 **Usage:**
 
@@ -105,30 +104,74 @@ python generate-posts-spreadsheet.py
 
 **Output:**
 
-- Creates a new file in the `/exports/` directory called `wordpress_posts_by_category.csv` with posts organized by category and month
-- Includes proper formatting for Excel compatibility
+- Creates `/exports/wordpress_posts_by_category.csv`
+
+### Orchestrator Script
+
+#### `audit-release-prs.py`
+
+Coordinates data fetching and provides instructions for Claude analysis.
+
+**Usage:**
+
+```bash
+# Fetch all data for a version
+python audit-release-prs.py --fetch-changelog --fetch-posts --version 9.9.0
+
+# Check if data files exist
+python audit-release-prs.py --check --version 9.9.0
+
+# Show help
+python audit-release-prs.py
+```
+
+## Claude Skills
+
+### `/woocommerce-pr-analyzer`
+
+Performs deep thematic analysis of WooCommerce release PRs:
+- Groups PRs into themes
+- Assesses impact (HIGH/MEDIUM/LOW)
+- Identifies breaking changes
+- Generates release note suggestions
+
+**Usage:**
+```
+/woocommerce-pr-analyzer 9.9.0
+```
+
+### `/woocommerce-release-comms`
+
+Quick relevance scoring for changelog entries:
+- Ranks changes by developer relevance
+- Categorizes by impact level
+- Provides summary statistics
+
+**Usage:**
+```
+/woocommerce-release-comms 9.9.0
+```
 
 ## Directory Structure
 
-- `changelogs/`: Contains downloaded changelog files
-- `release-posts/`: Contains release post content
-- `.env`: Environment variables (create this file)
-
-## Getting Started
-
-1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Create `.env` file with your GitHub token
-4. Run the desired script based on your needs
+```
+.
+├── changelogs/          # Downloaded changelog files (CSV and TXT)
+├── release-posts/       # Release post content from developer blog
+├── exports/             # Generated CSV exports
+├── logs/                # Script execution logs
+├── .claude/
+│   └── skills/          # Claude skill definitions
+│       ├── woocommerce-pr-analyzer/
+│       └── woocommerce-release-comms/
+└── .env                 # Environment variables (create this)
+```
 
 ## Notes
 
-- When opening the generated CSV in Excel, you may need to:
-  1. Use 'Data' > 'From Text/CSV'
-  2. Set the delimiter to comma
-  3. Enable 'Treat consecutive delimiters as one'
-  4. Set the text qualifier to double quotes
-  5. Set the encoding to '65001: Unicode (UTF-8)'
+- When opening generated CSVs in Excel, you may need to set UTF-8 encoding
+- The `GITHUB_TOKEN` is required for fetching changelog data from GitHub
+- Claude skills require Claude Code CLI to be installed and configured
 
 ## Contributing
 
@@ -136,4 +179,4 @@ Feel free to submit issues and enhancement requests.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
