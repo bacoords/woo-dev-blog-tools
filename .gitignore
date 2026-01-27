@@ -3,3 +3,4 @@ changelogs/
 .env
 .DS_Store
 exports/
+.playwright-mcp/

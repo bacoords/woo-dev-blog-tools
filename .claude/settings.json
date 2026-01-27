@@ -3,7 +3,8 @@
   "permissions": {
     "allow": [
       "Skill(woocommerce-release-comms)",
-      "Skill(woocommerce-pr-analyzer)"
+      "Skill(woocommerce-pr-analyzer)",
+      "Skill(wooc-demo-screenshots)"
     ],
     "deny": [],
     "ask": []
