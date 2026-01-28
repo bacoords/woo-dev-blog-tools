@@ -22,28 +22,25 @@ This skill requires the Playwright MCP server to be configured and running. The 
 ## Common Screenshot Workflows
 
 ### Capture Shop Page
-1. Navigate to `https://woo-demo-store-mcp.mystagingwebsite.com/shop/`
-2. Wait for products to load
-3. Take screenshot
+Navigate to `/shop/` and take screenshot
 
 ### Capture Single Product
-1. Navigate to `https://woo-demo-store-mcp.mystagingwebsite.com/shop/`
-2. Click on a product to view details
-3. Take screenshot of product page
+Navigate to `/shop/`, click a product, and take screenshot
 
 ### Capture Cart
-1. Navigate to shop and add item to cart
-2. Navigate to `https://woo-demo-store-mcp.mystagingwebsite.com/cart/`
-3. Take screenshot of cart page
+Add item to cart, navigate to `/cart/`, and take screenshot
 
 ### Capture Checkout
-1. Add items to cart
-2. Navigate to `https://woo-demo-store-mcp.mystagingwebsite.com/checkout/`
-3. Take screenshot of checkout form
+Navigate to `/checkout/` and take screenshot
 
 ### Capture My Account
-1. Navigate to `https://woo-demo-store-mcp.mystagingwebsite.com/my-account/`
-2. Take screenshot (login page if not authenticated)
+Navigate to `/my-account/` and take screenshot (login page if not authenticated)
+
+### Capture Single Product Template Editor
+Navigate to `/wp-admin/site-editor.php?p=%2Fwp_template%2Fpurple%2F%2Fsingle-product&canvas=edit`
+
+### Capture Product Catalog Template Editor
+Navigate to `/wp-admin/site-editor.php?p=%2Fwp_template%2Fpurple%2F%2Farchive-product&canvas=edit`
 
 ## Key Store Pages
 
