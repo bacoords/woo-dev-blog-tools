@@ -19,20 +19,20 @@ GITHUB_TOKEN=your_github_token_here
 
 The recommended workflow for analyzing WooCommerce releases:
 
-### 1. Fetch Data (PHP)
+### 1. Fetch Data (Claude Skill)
 
-```bash
-# Fetch changelog for a specific version
-php fetch-changelog.php 9.9.0
-
-# Fetch release posts for context
-php fetch-posts.php
+Use the data fetch skill to download all required data:
+```
+/woo-data-fetch 9.9.0
 ```
 
-Or use the orchestrator script:
+This fetches the changelog, release posts, and generates the posts spreadsheet.
+
+Or use PHP scripts directly:
 
 ```bash
 php audit-release-prs.php --fetch-changelog --fetch-posts --version=9.9.0
+php generate-posts-spreadsheet.php
 ```
 
 ### 2. Analyze (Claude Skills)
@@ -123,6 +123,18 @@ php audit-release-prs.php --help
 
 ## Claude Skills
 
+### `/woo-data-fetch`
+
+Fetches all release data and generates reports:
+- Downloads changelog from GitHub for a specific version
+- Fetches release posts from developer blog
+- Generates posts spreadsheet organized by category/month
+
+**Usage:**
+```
+/woo-data-fetch 9.9.0
+```
+
 ### `/woocommerce-pr-analyzer`
 
 Performs deep thematic analysis of WooCommerce release PRs:
@@ -159,6 +171,7 @@ Quick relevance scoring for changelog entries:
 ├── exports/             # Generated CSV exports
 ├── .claude/
 │   └── skills/          # Claude skill definitions
+│       ├── woo-data-fetch/
 │       ├── woocommerce-pr-analyzer/
 │       └── woocommerce-release-comms/
 └── .env                 # Environment variables (create this)

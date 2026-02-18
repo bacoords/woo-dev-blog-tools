@@ -199,7 +199,7 @@ function main() {
 
     // Write header row (empty first column for month, then category names)
     $headers = array_merge(['Month'], $categories);
-    fputcsv($handle, $headers);
+    fputcsv($handle, $headers, ',', '"', '\\');
 
     // Write data rows (months as rows, categories as columns)
     foreach ($all_months as $month) {
@@ -209,7 +209,7 @@ function main() {
             // Join multiple posts with newlines
             $row[] = !empty($posts_titles) ? implode("\n", $posts_titles) : '';
         }
-        fputcsv($handle, $row);
+        fputcsv($handle, $row, ',', '"', '\\');
     }
 
     fclose($handle);

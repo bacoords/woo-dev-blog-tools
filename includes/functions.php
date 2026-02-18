@@ -236,7 +236,7 @@ function write_csv_with_bom($filename, $headers, $rows) {
     fwrite($handle, "\xEF\xBB\xBF");
 
     // Write headers
-    fputcsv($handle, $headers);
+    fputcsv($handle, $headers, ',', '"', '\\');
 
     // Write rows
     foreach ($rows as $row) {
@@ -245,7 +245,7 @@ function write_csv_with_bom($filename, $headers, $rows) {
         foreach ($headers as $header) {
             $ordered_row[] = $row[$header] ?? '';
         }
-        fputcsv($handle, $ordered_row);
+        fputcsv($handle, $ordered_row, ',', '"', '\\');
     }
 
     fclose($handle);
