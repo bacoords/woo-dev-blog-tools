@@ -1,14 +1,10 @@
 # WooCommerce Developer Blog Tools
 
-This repository contains a collection of Python scripts and Claude skills to help manage and analyze WooCommerce developer blog content, changelogs, and release information.
+This repository contains a collection of PHP scripts and Claude skills to help manage and analyze WooCommerce developer blog content, changelogs, and release information.
 
 ## Prerequisites
 
-- Python 3.x
-- Required Python packages (install using `pip install -r requirements.txt`):
-  - requests
-  - pandas
-  - python-dotenv
+- PHP 8.1+ with cURL extension
 - Claude Code CLI (for analysis skills)
 
 ## Environment Setup
@@ -23,20 +19,20 @@ GITHUB_TOKEN=your_github_token_here
 
 The recommended workflow for analyzing WooCommerce releases:
 
-### 1. Fetch Data (Python)
+### 1. Fetch Data (PHP)
 
 ```bash
 # Fetch changelog for a specific version
-python fetch-changelog.py 9.9.0
+php fetch-changelog.php 9.9.0
 
 # Fetch release posts for context
-python fetch-posts.py
+php fetch-posts.php
 ```
 
 Or use the orchestrator script:
 
 ```bash
-python audit-release-prs.py --fetch-changelog --fetch-posts --version 9.9.0
+php audit-release-prs.php --fetch-changelog --fetch-posts --version=9.9.0
 ```
 
 ### 2. Analyze (Claude Skills)
@@ -55,51 +51,51 @@ For quick relevance scoring:
 
 ### Data Fetching Scripts
 
-#### `fetch-changelog.py`
+#### `fetch-changelog.php`
 
 Downloads the changelog for a specific WooCommerce version from the WooCommerce GitHub repository.
 
 **Usage:**
 
 ```bash
-python fetch-changelog.py <version>
-# Example: python fetch-changelog.py 9.9.0
+php fetch-changelog.php <version>
+# Example: php fetch-changelog.php 9.9.0
 ```
 
 **Output:**
 
-- Creates files in the `changelogs/` directory (`<version>.csv` and `<version>.txt`)
+- Creates files in the `changelogs/` directory (`<version>.csv`)
 - Downloads changelog content from the WooCommerce trunk branch
 - Falls back to generating changelog from GitHub PRs if trunk version not found
 
-#### `fetch-pr-descriptions.py`
+#### `fetch-pr-descriptions.php`
 
 Fetches and adds PR descriptions to changelog files by reading PR references from the changelog.
 
 **Usage:**
 
 ```bash
-python fetch-pr-descriptions.py <changelog_file>
+php fetch-pr-descriptions.php <changelog_file>
 ```
 
-#### `fetch-posts.py`
+#### `fetch-posts.php`
 
 Fetches posts from the WooCommerce developer blog.
 
 **Usage:**
 
 ```bash
-python fetch-posts.py
+php fetch-posts.php
 ```
 
-#### `generate-posts-spreadsheet.py`
+#### `generate-posts-spreadsheet.php`
 
 Generates a CSV spreadsheet of WordPress posts organized by category and month.
 
 **Usage:**
 
 ```bash
-python generate-posts-spreadsheet.py
+php generate-posts-spreadsheet.php
 ```
 
 **Output:**
@@ -108,7 +104,7 @@ python generate-posts-spreadsheet.py
 
 ### Orchestrator Script
 
-#### `audit-release-prs.py`
+#### `audit-release-prs.php`
 
 Coordinates data fetching and provides instructions for Claude analysis.
 
@@ -116,13 +112,13 @@ Coordinates data fetching and provides instructions for Claude analysis.
 
 ```bash
 # Fetch all data for a version
-python audit-release-prs.py --fetch-changelog --fetch-posts --version 9.9.0
+php audit-release-prs.php --fetch-changelog --fetch-posts --version=9.9.0
 
 # Check if data files exist
-python audit-release-prs.py --check --version 9.9.0
+php audit-release-prs.php --check --version=9.9.0
 
 # Show help
-python audit-release-prs.py
+php audit-release-prs.php --help
 ```
 
 ## Claude Skills
@@ -156,10 +152,11 @@ Quick relevance scoring for changelog entries:
 
 ```
 .
-├── changelogs/          # Downloaded changelog files (CSV and TXT)
+├── includes/            # Shared PHP functions
+│   └── functions.php
+├── changelogs/          # Downloaded changelog files (CSV)
 ├── release-posts/       # Release post content from developer blog
 ├── exports/             # Generated CSV exports
-├── logs/                # Script execution logs
 ├── .claude/
 │   └── skills/          # Claude skill definitions
 │       ├── woocommerce-pr-analyzer/
