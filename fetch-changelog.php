@@ -212,6 +212,7 @@ function format_prs_as_changelog($prs) {
         $title = $pr['title'];
         $pr_id = $pr['number'];
         $url = $pr['html_url'];
+        $author = $pr['user']['login'] ?? '';
 
         // Get labels, excluding "plugin: woocommerce"
         $labels = array_filter($pr['labels'] ?? [], function($label) {
@@ -228,6 +229,7 @@ function format_prs_as_changelog($prs) {
         $changelog_rows[] = [
             'ID' => $pr_id,
             'Title' => $title,
+            'Author' => $author,
             'Labels' => $label_str,
             'URL' => $url,
             'Description' => $description,
@@ -254,6 +256,7 @@ function save_changelog($version, $content) {
         $rows = [[
             'ID' => '',
             'Title' => "Changelog for version {$version}",
+            'Author' => '',
             'Labels' => '',
             'URL' => '',
             'Description' => $content,
@@ -263,7 +266,7 @@ function save_changelog($version, $content) {
         $rows = $content; // content is already a list of dicts from PRs
     }
 
-    $headers = ['ID', 'Title', 'Labels', 'URL', 'Description', 'Ranking'];
+    $headers = ['ID', 'Title', 'Author', 'Labels', 'URL', 'Description', 'Ranking'];
 
     if (write_csv_with_bom($filename, $headers, $rows)) {
         echo "Successfully saved changelog to {$filename}\n";
